@@ -1,7 +1,4 @@
-
 package com.klu.Entity;
-
-import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

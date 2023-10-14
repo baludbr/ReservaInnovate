@@ -7,24 +7,35 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import javax.servlet.http.HttpSession;
-
+import org.json.JSONArray;
+import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.klu.Entity.Customer;
+import com.klu.Entity.HotelInfo;
 import com.klu.repository.CustomerRepository;
 
 @Service
 public class CustomerManager {
-	static jakarta.servlet.http.HttpSession session;
-	static int otp=0;
+	private static jakarta.servlet.http.HttpSession session;
+	private static int otp=0;
+	private static String session_email;
 	private Customer st;
 	@Autowired
 	CustomerRepository cr;
 	@Autowired
 	JavaMailSender jms;
+	
+	
+	//Register and OTP Validation
 	public String register(Customer s)
 	{
 		System.out.println(cr.customerExsistence(s.getEmail()));
@@ -36,21 +47,9 @@ public class CustomerManager {
 		otp=randomNo();
 		st=s;
 		System.out.println(otp);
-		return sendMail(s.getEmail(),otp);
+		return sendMail(s.getEmail(),otp,"Hello!!Welcome to ReservalInnovate","You requested for otp.Your OTP is");
 	}
-	public String login(String email,String password)
-	{
-		Customer c=cr.loginAuthentication(email, password);
-		if(c!=null)
-		{
-			ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-			session = attr.getRequest().getSession();
-			session.setAttribute("id",c.getCustomerID());
-			return ""+session.getAttribute("id");
-		}
-			return "Invalid Credentials";
-	}
-	public String otpVerification(int x)
+	public String otpVerification_register(int x)
 	{
 		if(x==otp)
 		{
@@ -59,14 +58,13 @@ public class CustomerManager {
 		}
 		return "OTP Verification Failed";
 	}
-    public String sendMail(String email,int otp) {
+    public String sendMail(String email,int otp,String subject,String text) {
     	try {
     	SimpleMailMessage smm=new SimpleMailMessage();
     	smm.setFrom("dwarampudibalajireddy14@gmail.com");
     	smm.setTo(email);
-    	smm.setSubject("Hello!!Welcome to ReservalInnovate");
-    	
-    	String text="You requested for otp.Your OTP is"+otp;
+    	smm.setSubject(subject);
+    	text=text+otp;
     	smm.setText(text);
     	jms.send(smm);
     	return "Mail Sent Successfully";
@@ -79,18 +77,138 @@ public class CustomerManager {
     {
     	return new Random().nextInt(90000) + 10000;
     }
+	
+	
+    
+    
+	
+	//Login & Logout Details
+	public String login(String email,String password)
+	{
+		Customer c=cr.loginAuthentication(email, password);
+		if(c!=null)
+		{
+			ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+			session = attr.getRequest().getSession();
+			session.setAttribute("id",c.getCustomerID());
+			session.setAttribute("role",c.getRole());
+			return ""+session.getAttribute("id")+" "+session.getAttribute("role");
+		}
+			return "Invalid Credentials";
+	}
+	public String logout()
+    {
+    	session.invalidate();
+		return "Logout";
+    }
+	
+	
+	//ForgotPassword
+	
+	public String forgot_password_Main(String email)
+	{
+		otp=randomNo();
+		session_email=email;
+		if(cr.customerExsistence(email)!=null)
+		return sendMail(email, otp,"Request for Forgotten Password","You are requested for password reset.so you have to write this otp:");
+		return "Mail Not Found in our Database!!Kindly Register";
+	}
+	public String forgot_password_otp(int x)
+	{
+		if(x==otp)
+		{
+			ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+			session = attr.getRequest().getSession();
+			session.setAttribute("email",session_email);
+			return "Verification SucessFully";
+		}
+		return "OTP Verification Failed";
+	}
+	public String updatePassword(String pass,String conpass)
+	{
+		System.out.println(pass+" "+conpass+" "+session.getAttribute("email"));
+		if(pass.equals(conpass))
+		{
+			Customer c=cr.customerExsistence((String)session.getAttribute("email"));
+			c.setPassword(pass);
+			cr.save(c);
+			session.invalidate();
+			return "Password Updated Successfully!!Login with your new Password!!";
+		}
+		return "Both passwords are not match";
+	}
+	
+	
+	
+	
+	
+	//Fetch Hotel Details By Location
+	public List<HotelInfo> getHotelInfo(String location) throws IOException, InterruptedException {
+        String apiKey = "d9cb4e93bbmshc175ff5f57f6d6ap1d65e5jsn22a6f3b7f42f";
+        List<HotelInfo> hotelInfoList = new ArrayList<>();
+
+        try {
+            String encodedLocation = URLEncoder.encode(location, StandardCharsets.UTF_8.toString());
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://hotels4.p.rapidapi.com/locations/v3/search?q=" + encodedLocation + "&locale=en_US&langid=1033&siteid=300000001"))
+                .header("X-RapidAPI-Key", apiKey)
+                .header("X-RapidAPI-Host", "hotels4.p.rapidapi.com")
+                .method("GET", HttpRequest.BodyPublishers.noBody())
+                .build();
+
+            HttpClient client = HttpClient.newHttpClient();
+
+            try {
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                JSONObject responseJson = new JSONObject(response.body());
+                if (responseJson.has("sr") && responseJson.get("sr") instanceof JSONArray) {
+                    JSONArray hotelResults = responseJson.getJSONArray("sr");
+                    for (int i = 0; i < hotelResults.length(); i++) {
+                        JSONObject hotelData = hotelResults.getJSONObject(i);
+                        if (hotelData.has("regionNames") && hotelData.getJSONObject("regionNames").has("fullName")) {
+                            String hotelName = hotelData.getJSONObject("regionNames").getString("fullName");
+                            String latitude = hotelData.getJSONObject("coordinates").getString("lat");
+                            String longitude = hotelData.getJSONObject("coordinates").getString("long");
+                            HotelInfo hotelInfo = new HotelInfo(hotelName, latitude, longitude);
+                            hotelInfoList.add(hotelInfo);
+                        }
+                    }
+                }
+            } finally {
+                
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace(); 
+            throw e;
+        }
+
+        return hotelInfoList;
+    }
     public String JsontoString(Object obj)
     {
     	GsonBuilder gs=new GsonBuilder();
 		Gson g=gs.create();
 		return g.toJson(obj);
     }
+    
+    
+    
+    
+    
+    
+    
+    //Components
     public String testSession()
 	{
-		if(session==null)
+		try
 		{
-			return "Session TimeOut";
-		}
 		return ""+session.getAttribute("id");
+		}
+		catch(Exception e)
+		{
+			return "Session Timeout";
+		}
 	}
-}
+
+    }
+   
