@@ -20,8 +20,10 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.klu.Entity.Customer;
+import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
 import com.klu.repository.CustomerRepository;
+import com.klu.repository.HotelTypeRepository;
 
 @Service
 public class CustomerManager {
@@ -33,7 +35,8 @@ public class CustomerManager {
 	CustomerRepository cr;
 	@Autowired
 	JavaMailSender jms;
-	
+	@Autowired
+	HotelTypeRepository htp;
 	
 	//Register and OTP Validation
 	public String register(Customer s)
@@ -104,7 +107,6 @@ public class CustomerManager {
 	
 	
 	//ForgotPassword
-	
 	public String forgot_password_Main(String email)
 	{
 		otp=randomNo();
@@ -144,45 +146,62 @@ public class CustomerManager {
 	
 	//Fetch Hotel Details By Location
 	public List<HotelInfo> getHotelInfo(String location) throws IOException, InterruptedException {
-        String apiKey = "d9cb4e93bbmshc175ff5f57f6d6ap1d65e5jsn22a6f3b7f42f";
-        List<HotelInfo> hotelInfoList = new ArrayList<>();
+		 String apiKey = "d9cb4e93bbmshc175ff5f57f6d6ap1d65e5jsn22a6f3b7f42f";
+		    List<HotelInfo> hotelInfoList = new ArrayList<>();
 
-        try {
-            String encodedLocation = URLEncoder.encode(location, StandardCharsets.UTF_8.toString());
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://hotels4.p.rapidapi.com/locations/v3/search?q=" + encodedLocation + "&locale=en_US&langid=1033&siteid=300000001"))
-                .header("X-RapidAPI-Key", apiKey)
-                .header("X-RapidAPI-Host", "hotels4.p.rapidapi.com")
-                .method("GET", HttpRequest.BodyPublishers.noBody())
-                .build();
+		    try {
+		        String encodedLocation = URLEncoder.encode(location, StandardCharsets.UTF_8.toString());
+		        HttpRequest request = HttpRequest.newBuilder()
+		            .uri(URI.create("https://hotels4.p.rapidapi.com/locations/v3/search?q=" + encodedLocation + "&locale=en_US&langid=1033&siteid=300000001"))
+		            .header("X-RapidAPI-Key", apiKey)
+		            .header("X-RapidAPI-Host", "hotels4.p.rapidapi.com")
+		            .method("GET", HttpRequest.BodyPublishers.noBody())
+		            .build();
 
-            HttpClient client = HttpClient.newHttpClient();
+		        HttpClient client = HttpClient.newHttpClient();
 
-            try {
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                JSONObject responseJson = new JSONObject(response.body());
-                if (responseJson.has("sr") && responseJson.get("sr") instanceof JSONArray) {
-                    JSONArray hotelResults = responseJson.getJSONArray("sr");
-                    for (int i = 0; i < hotelResults.length(); i++) {
-                        JSONObject hotelData = hotelResults.getJSONObject(i);
-                        if (hotelData.has("regionNames") && hotelData.getJSONObject("regionNames").has("fullName")) {
-                            String hotelName = hotelData.getJSONObject("regionNames").getString("fullName");
-                            String latitude = hotelData.getJSONObject("coordinates").getString("lat");
-                            String longitude = hotelData.getJSONObject("coordinates").getString("long");
-                            HotelInfo hotelInfo = new HotelInfo(hotelName, latitude, longitude);
-                            hotelInfoList.add(hotelInfo);
-                        }
-                    }
-                }
-            } finally {
-                
-            }
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace(); 
-            throw e;
-        }
+		        try {
+		            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		            JSONObject responseJson = new JSONObject(response.body());
+		            if (responseJson.has("sr") && responseJson.get("sr") instanceof JSONArray) {
+		                JSONArray hotelResults = responseJson.getJSONArray("sr");
+		                for (int i = 0; i < hotelResults.length(); i++) {
+		                    JSONObject hotelData = hotelResults.getJSONObject(i);
+		                    if (hotelData.has("regionNames") && hotelData.getJSONObject("regionNames").has("fullName")) {
+		                        String hotelName = hotelData.getJSONObject("regionNames").getString("primaryDisplayName");
+		                        String latitude = hotelData.getJSONObject("coordinates").getString("lat");
+		                        String longitude = hotelData.getJSONObject("coordinates").getString("long");
+		                        String description = "";
+		                        if (hotelData.has("description")) {
+		                            description = hotelData.getString("description");
+		                        }
+		                        if (hotelData.has("hotelAddress")) {
+		                            JSONObject hotelAddress = hotelData.getJSONObject("hotelAddress");
+		                            if (hotelAddress.has("street")) {
+		                                description = description +""+hotelAddress.getString("street")+",";
+		                            }
+		                            if (hotelAddress.has("city")) {
+		                            	description = description +""+hotelAddress.getString("city")+",";
+		                            }
+		                            if (hotelAddress.has("province")) {
+		                            	description = description +""+ hotelAddress.getString("province");
+		                            }
+		                        }
 
-        return hotelInfoList;
+		                        HotelInfo hotelInfo = new HotelInfo(hotelName, latitude, longitude, description);
+		                        hotelInfoList.add(hotelInfo);
+		                    }
+		                }
+		            }
+		        } finally {
+		            // Any necessary clean-up code can be placed here
+		        }
+		    } catch (IOException | InterruptedException e) {
+		        e.printStackTrace();
+		        throw e;
+		    }
+
+		    return hotelInfoList;
     }
     public String JsontoString(Object obj)
     {
@@ -192,9 +211,30 @@ public class CustomerManager {
     }
     
     
-    
-    
-    
+  //RoomTypeLogic
+    public String addRoomType(Hotel h)
+    {
+    	try
+		{
+		String ss=""+session.getAttribute("id");
+		Customer cust=cr.findById(Long.parseLong(ss)).get();
+		System.out.println(cust.getRole());
+		if(cust.getRole().equals("manager"))
+		{
+		htp.save(h);
+		return "Account Saved by "+cust.getName();
+	    }
+		else
+		{
+			throw new Exception("Session Timeout");
+		}
+		}
+		catch(Exception e)
+		{
+			return "Session Timeout";
+		}
+    }
+     
     
     
     //Components

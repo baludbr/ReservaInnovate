@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.klu.Entity.Customer;
+import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
 import com.klu.model.CustomerManager;
 @CrossOrigin(origins = "http://localhost:3000")
@@ -125,6 +126,18 @@ public class CustomerController {
 	public ResponseEntity<String> homePage()
 	{
 		String res=cm.testSession();
+		if(res=="Session TimeOut")
+		{
+			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
+		}
+		return new ResponseEntity<>(res,HttpStatus.OK);
+	}
+	
+	//HotelRoomTypeInsertion Microservices
+	@PostMapping("/addRoomType")
+	public  ResponseEntity<String> addRoomType(@RequestBody Hotel h)
+	{
+		String res=cm.addRoomType(h);
 		if(res=="Session TimeOut")
 		{
 			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
