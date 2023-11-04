@@ -14,4 +14,6 @@ import com.klu.Entity.Customer;
 public interface BookingRepository extends JpaRepository<Booking,Long>{
 	@Query("SELECT c FROM Booking c WHERE c.CustomerID = :id")
 	public List<Booking> getBookingDetailsById(@Param("id") String id);
+	@Query("SELECT c FROM Booking c WHERE c.BookingId = :id")
+	public Booking getBookingDetailsByBookingId(@Param("id") Long id);
 }

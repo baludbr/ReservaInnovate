@@ -26,6 +26,7 @@ import com.klu.Entity.Customer;
 import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
 import com.klu.Entity.Room;
+import com.klu.Entity.RoomApproval;
 import com.klu.repository.BookingRepository;
 import com.klu.repository.CustomerRepository;
 import com.klu.repository.HotelTypeRepository;
@@ -103,7 +104,7 @@ public class CustomerManager {
 			session = attr.getRequest().getSession();
 			session.setAttribute("id",c.getCustomerID());
 			session.setAttribute("role",c.getRole());
-			return ""+session.getAttribute("id")+" "+session.getAttribute("role");
+			return ""+session.getAttribute("role");
 		}
 			return "Invalid Credentials";
 	}
@@ -229,7 +230,23 @@ public class CustomerManager {
 		System.out.println(cust.getRole());
 		if(cust.getRole().equals("manager"))
 		{
-		htp.save(h);
+		try
+		{
+			Hotel ht=htp.getRoomType(h.getRoomType());
+			if(ht==null)
+			{
+			htp.save(h);
+			}
+			else
+			{
+				return "Already Exists";
+			}
+		}
+		catch(Exception e)
+		{
+			return "Already exists";
+		}
+		
 		return "Account Saved by "+cust.getName();
 	    }
 		else
@@ -257,6 +274,10 @@ public class CustomerManager {
     		if(cust.getRole().equals("manager"))
     		{
 	    		rr.save(r);
+	    		Hotel h=htp.getRoomType(r.getRoomType());
+	    		h.setTotalCapacity(h.getTotalCapacity()+1);
+	    		h.setAvaliability(h.getAvaliability()+1);
+	    		htp.save(h);
 	    		return "Room Inserted";
     		}
     		else
@@ -271,6 +292,44 @@ public class CustomerManager {
     		return "Session Timeout";
     	}
     }
+    public String approval(RoomApproval ra)
+    {
+    	try
+    	{
+    		String ss=""+session.getAttribute("id");
+    		Customer cust=cr.findById(Long.parseLong(ss)).get();
+    		System.out.println(cust.getRole());
+    		if(cust.getRole().equals("manager"))
+    		{
+    			if(ra.getStatus().equals("accepted"))
+    			{
+    		    Long bookingID=ra.getRoomID();
+    		    Booking bk=br.getBookingDetailsByBookingId(bookingID);
+    		    bk.setStatus(ra.getStatus());
+    		    bk.setRoomNo(ra.getRoomNumber());
+    		    br.save(bk);
+    		    String roomType=bk.getRoomType();
+    		    Hotel h=htp.getRoomType(roomType);
+    		    h.setAvaliability(h.getAvaliability()-1);
+    		    htp.save(h);
+    		    Room rd=rr.getBookingDetails(ra.getRoomNumber());
+    		    rd.setAvailabilty("Booked");
+    		    rr.save(rd);
+    		    return "Approved Sucessfully";
+    			}
+    			return  "Rejected/Cancelled your booking.Contact Manager";
+    		}
+    		else
+    		{
+    			throw new Exception("Session Timeout");
+    		}
+    		}
+    		catch(Exception e)
+    		{
+    		return e.getMessage();
+    		}
+    }
+    
     
     
     
@@ -338,11 +397,11 @@ public class CustomerManager {
         }
     	catch(Exception e)
     	{
-    		return "Session Timeout";
+    		return e.getMessage();
     	}
     }
     //BookingDetails(Payment)
-    public String PaymentStatus(String Pstatus,String price)
+    public String PaymentStatus(String Pstatus,String price,String refId)
     {
     	try
     	{
@@ -352,16 +411,29 @@ public class CustomerManager {
     	System.out.println(Pstatus);
     	if(Pstatus.equals("Yes"))
     	{
-    	if(or>=0.1*rr)
-    	{
-    		b.setPaidStatus("Partially Paid");
+    	
+    	if(or>=rr){
+    		b.setPaidStatus("Fully Paid");
     		b.setStatus("Review pending");
     		b.setPaidAmount(""+or);
+    		List<String> dd;
+    		if(b.getReferalIds()==null)
+    		{
+    			dd=new ArrayList<>();
+    			dd.add(refId);
+    		}
+    		else
+    		{
+    		  dd=b.getReferalIds();
+    		  dd.add(refId);
+    		}
+    		b.setReferalIds(dd);
     		br.save(b);
     		return "Room Booking Successfully.Please contact manager for Room Details";
     	}
-    	else if(or>=rr){
-    		b.setPaidStatus("Fully Paid");
+    	else if(or>=0.1*rr)
+    	{
+    		b.setPaidStatus("Partially Paid");
     		b.setStatus("Review pending");
     		b.setPaidAmount(""+or);
     		br.save(b);
@@ -379,7 +451,7 @@ public class CustomerManager {
     	}
     	catch(Exception e)
     	{
-    		return "Session Timeout";
+    		return e.getMessage();
     	}
     }
     //BookingHistory

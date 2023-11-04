@@ -1,6 +1,7 @@
 package com.klu.Entity;
 
 import java.util.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -30,6 +31,14 @@ public class Booking {
 	String paidStatus="Not Paid";
 	String personCount;
 	String paidAmount;
+	List<String> referalIds;
+	
+	public List<String> getReferalIds() {
+		return referalIds;
+	}
+	public void setReferalIds(List<String> referalIds) {
+		this.referalIds = referalIds;
+	}
 	Long CustomerID;
 	
 	public String getPaidAmount() {

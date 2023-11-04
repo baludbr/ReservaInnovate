@@ -1,5 +1,7 @@
 package com.klu.Entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,9 +16,11 @@ public class Hotel {
 	Long roomTypeID;
 	String roomType;
 	String pictureURL;
-	String totalCapacity;
+	@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+	int totalCapacity=0;
 	String roomCapacity;
-	String avaliability;
+	@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+	int avaliability=0;
 	String description;
 	String price;
 	public Long getRoomTypeID() {
@@ -37,10 +41,10 @@ public class Hotel {
 	public void setPictureURL(String pictureURL) {
 		this.pictureURL = pictureURL;
 	}
-	public String getTotalCapacity() {
+	public int getTotalCapacity() {
 		return totalCapacity;
 	}
-	public void setTotalCapacity(String totalCapacity) {
+	public void setTotalCapacity(int totalCapacity) {
 		this.totalCapacity = totalCapacity;
 	}
 	public String getRoomCapacity() {
@@ -49,10 +53,10 @@ public class Hotel {
 	public void setRoomCapacity(String roomCapacity) {
 		this.roomCapacity = roomCapacity;
 	}
-	public String getAvaliability() {
+	public int getAvaliability() {
 		return avaliability;
 	}
-	public void setAvaliability(String avaliability) {
+	public void setAvaliability(int avaliability) {
 		this.avaliability = avaliability;
 	}
 	public String getDescription() {

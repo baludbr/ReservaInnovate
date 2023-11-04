@@ -27,6 +27,7 @@ import com.klu.Entity.Customer;
 import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
 import com.klu.Entity.Room;
+import com.klu.Entity.RoomApproval;
 import com.klu.model.CustomerManager;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
@@ -169,7 +170,7 @@ public class CustomerController {
     @PostMapping("/payments")
     public ResponseEntity<String> paymentStatus(@RequestBody Map<String,String> b)
     {
-    	String res=cm.PaymentStatus(b.get("status"),b.get("price"));
+    	String res=cm.PaymentStatus(b.get("status"),b.get("price"),b.get("referenceID"));
     	if(res=="Session TimeOut")
 		{
 			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
@@ -212,4 +213,10 @@ public class CustomerController {
 	{
 		return new ResponseEntity<>(cm.insertRoom(r),HttpStatus.OK);
 	}
+	@PostMapping("/approval")
+	public ResponseEntity<String> approvalRoom(@RequestBody RoomApproval r)
+	{
+		return new ResponseEntity<>(cm.approval(r),HttpStatus.OK);
+	}
 }
+//-----------------------------------------------------------------------------------------------------------------------------------------------//
