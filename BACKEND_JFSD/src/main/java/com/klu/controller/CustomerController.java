@@ -16,6 +16,7 @@ import com.klu.Entity.HotelInfo;
 import com.klu.model.CustomerManager;
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
+
 @RequestMapping("/user")
 public class CustomerController {
 	@Autowired
@@ -40,6 +41,7 @@ public class CustomerController {
 		}
 	}
 	@PostMapping("/otp")
+	
 	public ResponseEntity<String> otpverify(@RequestBody Integer s)
 	{
 		String k=cm.otpVerification_register(s);
@@ -143,5 +145,10 @@ public class CustomerController {
 			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
 		}
 		return new ResponseEntity<>(res,HttpStatus.OK);
+	}
+	@GetMapping("/getRoomType")
+	public  ResponseEntity<List<Hotel>> getRoomType()
+	{
+		return new ResponseEntity<>(cm.getoomType(),HttpStatus.OK);
 	}
 }

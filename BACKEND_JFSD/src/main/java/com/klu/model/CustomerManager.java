@@ -234,9 +234,11 @@ public class CustomerManager {
 			return "Session Timeout";
 		}
     }
-     
-    
-    
+    //GetRoomType
+    public List<Hotel> getoomType()
+    {
+    	return htp.findAll();
+    }
     //Components
     public String testSession()
 	{
