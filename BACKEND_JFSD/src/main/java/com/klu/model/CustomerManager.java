@@ -1,9 +1,11 @@
 package com.klu.model;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -19,11 +21,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.klu.Entity.Booking;
 import com.klu.Entity.Customer;
 import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
+import com.klu.Entity.Room;
+import com.klu.repository.BookingRepository;
 import com.klu.repository.CustomerRepository;
 import com.klu.repository.HotelTypeRepository;
+import com.klu.repository.RoomRepository;
 
 @Service
 public class CustomerManager {
@@ -37,7 +43,9 @@ public class CustomerManager {
 	JavaMailSender jms;
 	@Autowired
 	HotelTypeRepository htp;
-	
+	@Autowired
+	RoomRepository rr;
+//-----------------------------------------------------Registration and Login---------------------------------------------------------------------//
 	//Register and OTP Validation
 	public String register(Customer s)
 	{
@@ -194,7 +202,7 @@ public class CustomerManager {
 		                }
 		            }
 		        } finally {
-		            // Any necessary clean-up code can be placed here
+		           
 		        }
 		    } catch (IOException | InterruptedException e) {
 		        e.printStackTrace();
@@ -210,7 +218,7 @@ public class CustomerManager {
 		return g.toJson(obj);
     }
     
-    
+  //---------------------------------------------------------MANAGER VIEW-----------------------------------------------------------------------//  
   //RoomTypeLogic
     public String addRoomType(Hotel h)
     {
@@ -239,6 +247,43 @@ public class CustomerManager {
     {
     	return htp.findAll();
     }
+    public String insertRoom(Room r)
+    {
+    	try
+    	{
+    		String ss=""+session.getAttribute("id");
+    		Customer cust=cr.findById(Long.parseLong(ss)).get();
+    		System.out.println(cust.getRole());
+    		if(cust.getRole().equals("manager"))
+    		{
+	    		rr.save(r);
+	    		return "Room Inserted";
+    		}
+    		else
+    		{
+    			System.out.println("hh");
+    			throw new Exception("Session Timeout");
+    		}
+    	}
+    	catch(Exception e)
+    	{
+    		System.out.println("ht");
+    		return "Session Timeout";
+    	}
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     //Components
     public String testSession()
 	{
@@ -251,6 +296,114 @@ public class CustomerManager {
 			return "Session Timeout";
 		}
 	}
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+//-------------------------------------------------CUSTOMER--------------------------------------------------------------------------//
+    //BookingDetails
+    @Autowired
+    BookingRepository br;
+    Booking b;
+    public String BookingDetails(Booking b)
+    {
+    	try
+		{
+		String ss=""+session.getAttribute("id");
+		Customer cust=cr.findById(Long.parseLong(ss)).get();
+		if(cust.getRole().equals("customer"))
+		{
+		b.setCustomerID(Long.parseLong(ss));
+		session.setAttribute("price",b.getTotalCost());
+		this.b=b;
+		return  "Proceed to Payment Portal";
+		}
+		else
+		{
+			throw new Exception("Session Timeout");
+		}
+        }
+    	catch(Exception e)
+    	{
+    		return "Session Timeout";
+    	}
     }
-   
+    //BookingDetails(Payment)
+    public String PaymentStatus(String Pstatus,String price)
+    {
+    	try
+    	{
+    	int rr=Integer.parseInt(""+session.getAttribute("price"));
+    	int or=Integer.parseInt(""+price);
+    	System.out.println(rr+" "+or);
+    	System.out.println(Pstatus);
+    	if(Pstatus.equals("Yes"))
+    	{
+    	if(or>=0.1*rr)
+    	{
+    		b.setPaidStatus("Partially Paid");
+    		b.setStatus("Review pending");
+    		b.setPaidAmount(""+or);
+    		br.save(b);
+    		return "Room Booking Successfully.Please contact manager for Room Details";
+    	}
+    	else if(or>=rr){
+    		b.setPaidStatus("Fully Paid");
+    		b.setStatus("Review pending");
+    		b.setPaidAmount(""+or);
+    		br.save(b);
+    		return "Room Booking Successfully.Please contact manager for Room Details";
+    	}
+    	else
+    	{
+    		return "NotPaid";
+    	}
+    	}
+    	else
+    	{
+    		return "Booking Failed";
+    	}
+    	}
+    	catch(Exception e)
+    	{
+    		return "Session Timeout";
+    	}
+    }
+    //BookingHistory
+    public List<Booking> getBookingHistory()
+    {
+    	try
+    	{
+    		String ss=""+session.getAttribute("id");
+    		Customer cust=cr.findById(Long.parseLong(ss)).get();
+    		if(cust.getRole().equals("customer"))
+    		{
+    			List<Booking> ls=br.getBookingDetailsById(ss);
+    			return ls;
+    		}
+    		else
+    		{
+    			throw new Exception("Session Timeout");
+    		}
+  
+    	}
+    	catch(Exception e)
+    	{
+    		return null;
+    	}
+    }
+
+}

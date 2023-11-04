@@ -1,19 +1,36 @@
 package com.klu.controller;
 import java.io.IOException;
+
+import org.apache.catalina.authenticator.SpnegoAuthenticator.AuthenticateAction;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.couchbase.CouchbaseProperties.Env;
 import org.springframework.http.*;
+import org.springframework.ui.Model;
+
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.klu.Entity.Booking;
 import com.klu.Entity.Customer;
 import com.klu.Entity.Hotel;
 import com.klu.Entity.HotelInfo;
+import com.klu.Entity.Room;
 import com.klu.model.CustomerManager;
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
 
@@ -134,8 +151,47 @@ public class CustomerController {
 		}
 		return new ResponseEntity<>(res,HttpStatus.OK);
 	}
-	
-	//HotelRoomTypeInsertion Microservices
+//---------------------------------------------------CUSTOMER MICROSERVICES------------------------------------------------------------------//
+    @PostMapping("/bookingDetails")
+    public ResponseEntity<String> bookingDetails(@RequestBody Booking b)
+    {
+    	String res=cm.BookingDetails(b);
+    	if(res=="Session TimeOut")
+		{
+			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
+		}
+    	else if(res.equals("Proceed to Payment Portal"))
+    	{
+    		return new ResponseEntity<>(res,HttpStatus.OK);
+    	}
+		return new ResponseEntity<>(res,HttpStatus.NOT_IMPLEMENTED);
+    }
+    @PostMapping("/payments")
+    public ResponseEntity<String> paymentStatus(@RequestBody Map<String,String> b)
+    {
+    	String res=cm.PaymentStatus(b.get("status"),b.get("price"));
+    	if(res=="Session TimeOut")
+		{
+			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
+		}
+    	else if(res.equals("Room Booking Successfully.Please contact manager for Room Details"))
+    	{
+    		return new ResponseEntity<>(res,HttpStatus.OK);
+    	}
+		return new ResponseEntity<>(res,HttpStatus.NOT_IMPLEMENTED);
+    }
+    @GetMapping("/bookingHistory")
+    public ResponseEntity<List<Booking>> bookingHistory()
+    {
+    	List<Booking> res=cm.getBookingHistory();
+    	if(res==null)
+		{
+			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
+		}
+		return new ResponseEntity<>(res,HttpStatus.NOT_IMPLEMENTED);
+    }
+//--------------------------------------------------------------MANAGER MICROSERVICES--------------------------------------------------------//
+//HotelRoomTypeInsertion Microservices
 	@PostMapping("/addRoomType")
 	public  ResponseEntity<String> addRoomType(@RequestBody Hotel h)
 	{
@@ -150,5 +206,10 @@ public class CustomerController {
 	public  ResponseEntity<List<Hotel>> getRoomType()
 	{
 		return new ResponseEntity<>(cm.getoomType(),HttpStatus.OK);
+	}
+	@PostMapping("/addRooms")
+	public ResponseEntity<String> addRoom(@RequestBody Room r)
+	{
+		return new ResponseEntity<>(cm.insertRoom(r),HttpStatus.OK);
 	}
 }
