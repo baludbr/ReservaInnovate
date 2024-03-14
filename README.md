@@ -48,6 +48,3 @@ This project is licensed under the [MIT License](LICENSE).
 We would like to acknowledge the entire team for their dedication and effort in completing the project successfully.
 
 This repository contains only the backend code. The frontend code is available in the separate repository [here](https://github.com/Venky2004/reservalnnovate).
-
-## Acknowledgements
-We would like to acknowledge the entire team for their dedication and effort in completing the project successfully.
