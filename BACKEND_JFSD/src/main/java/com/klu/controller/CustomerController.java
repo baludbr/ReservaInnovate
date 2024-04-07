@@ -40,6 +40,13 @@ public class CustomerController {
 	@Autowired
 	CustomerManager cm;
 	
+	@GetMapping("/check-connection")
+    public ResponseEntity<String> checkConnection() {
+        // You can implement your connection checking logic here
+        // For simplicity, let's just return a success message
+        return new ResponseEntity<>("Connection established successfully!",HttpStatus.OK);
+    }
+	
 	//Registration and OTP MicroServices
 	@PostMapping("/register")
 	public ResponseEntity<String> register(@RequestBody Customer S)
@@ -135,8 +142,10 @@ public class CustomerController {
 	//HotelDetails By Location Microservice
 	@PostMapping("/location")
 	public ResponseEntity<List<HotelInfo>> getLocation(@RequestBody String s) throws IOException, InterruptedException
-	{
+	{	
+		System.out.println(cm.getHotelInfo(s));
 		return new ResponseEntity<>(cm.getHotelInfo(s),HttpStatus.OK);
+	    
 	}
 	
 	
@@ -189,7 +198,7 @@ public class CustomerController {
 		{
 			return new ResponseEntity<>(res,HttpStatus.GATEWAY_TIMEOUT);
 		}
-		return new ResponseEntity<>(res,HttpStatus.NOT_IMPLEMENTED);
+		return new ResponseEntity<>(res,HttpStatus.OK);
     }
 //--------------------------------------------------------------MANAGER MICROSERVICES--------------------------------------------------------//
 //HotelRoomTypeInsertion Microservices
